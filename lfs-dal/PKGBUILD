@@ -1,0 +1,48 @@
+# Maintainer: H3mul <phil.d324@gmail.com>
+
+pkgname=lfs-dal
+pkgver=0.1.2
+pkgrel=1
+pkgdesc='A custom transfer agent for Git LFS powered by OpenDAL.'
+arch=('x86_64')
+url='https://github.com/regen100/lfs-dal'
+license=('MIT')
+makedepends=('cargo' 'git')
+source=("$pkgname::git+$url#tag=v$pkgver")
+sha256sums=('SKIP')
+
+pkgver() {
+   cd "$pkgname"
+   git describe --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g;s/^v//g'
+}
+
+prepare() {
+  cd "$pkgname"
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "$pkgname"
+  cargo build --frozen --release --all-features
+}
+
+check() {
+  cd "$pkgname"
+  cargo test --frozen --all-features
+}
+
+package() {
+  cd "$pkgname"
+
+  # binary
+  install -vDm755 -t "$pkgdir/usr/bin" "target/release/$pkgname"
+
+  # license
+  install -vDm644 -t "$pkgdir/usr/share/licenses/$pkgname" LICENSE
+
+  # documentation
+  install -vDm644 -t "$pkgdir/usr/share/doc/$pkgname" README.md
+
+  # manpage
+  install -vDm644 -t "$pkgdir/usr/share/man/man1/" man-page/$pkgname.1
+}
