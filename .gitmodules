@@ -1,3 +1,0 @@
-[submodule "lfs-s3"]
-	path = lfs-s3
-	url = ssh://aur@aur.archlinux.org/lfs-s3.git
