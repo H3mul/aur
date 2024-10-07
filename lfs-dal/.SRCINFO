@@ -7,10 +7,7 @@ pkgbase = lfs-dal
 	license = MIT
 	makedepends = cargo
 	makedepends = git
-	depends = gcc-libs
-	depends = glibc
-	options = strip
-	options = !debug
+	conflicts = lfs-dal
 	source = lfs-dal::git+https://github.com/regen100/lfs-dal#tag=v0.1.2
 	sha256sums = SKIP
 
