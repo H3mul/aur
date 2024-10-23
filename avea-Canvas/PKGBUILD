@@ -1,0 +1,19 @@
+pkgname=avae
+pkgver=0.8.5
+pkgrel=1
+pkgdesc="Advanced sound design and show control software for live performance"
+arch=('x86_64')
+url="https://avae.io/"
+# depends=('qt5-base' 'qt5-declarative' 'qt5-quickcontrols2' 'qt5-graphicaleffects' 'qt5-svg' 'hicolor-icon-theme' 'gnutls' 'libcurl-gnutls' 'libarchive' 'dosfstools' 'util-linux')
+# optdepends=('udisks2: non-root user support')
+provides=('Canvas-Beta')
+conflicts=('Canvas-Beta')
+source=("https://avae.s3.amazonaws.com/Canvas/Linux/Beta/Canvas-Beta.deb")
+sha256sums=('67b35086c78182af4093382f8649bde0bc45770cfde999bb55b74f998897d92a')
+
+package() {
+    bsdtar -xf "$srcdir/data.tar.gz" -C "$pkgdir"
+    mv "$pkgdir/usr/usr/share/icons" "$pkgdir/usr/share/"
+    rm -r "$pkgdir/usr/usr"
+    chmod 755 -R "$pkgdir"
+}

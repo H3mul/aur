@@ -1,0 +1,27 @@
+pkgname="runpodctl-git"
+pkgver=v1.10.0
+pkgrel=2
+pkgdesc='A cross-platform CLI Tool for requesting the Spotify Web API, with a focus on automation. '
+arch=('x86_64')
+options=(!strip)
+license=('GPL-3.0')
+provides=("runpodctl")
+makedepends=('dart' 'git')
+url='https://github.com/runpod/runpodctl'
+source=("${pkgname}::git+${url}")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "${pkgname}"
+    git describe --abbrev=0 --tags
+}
+
+build() {
+    cd "${pkgname}"
+    env GOOS=linux GOARCH=amd64 go build -ldflags "-X 'main.Version=${pkgver}'" -o bin/runpodctl-linux-amd .
+}
+
+package() {
+    cd "${pkgname}"
+    install -Dm 755 bin/runpodctl-linux-amd "${pkgdir}/usr/bin/runpodctl"
+}
