@@ -1,0 +1,38 @@
+name: PKGBUILD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  changed:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.diff.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Top-level dirs touched by this push/PR that still hold a PKGBUILD
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          pkgs=$(git diff --name-only "$BASE" HEAD | cut -sd/ -f1 | sort -u | while read -r d; do
+            [ -f "$d/PKGBUILD" ] && echo "$d"
+          done | jq -Rsc 'split("\n")[:-1]')
+          echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changed
+    if: needs.changed.outputs.packages != '[]'
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      packages: ${{ needs.changed.outputs.packages }}
+      publish: ${{ github.event_name == 'push' }}

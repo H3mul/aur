@@ -1,0 +1,89 @@
+name: Build
+
+# Reusable: builds each package dir in `packages`, publishes to AUR when `publish` is set
+on:
+  workflow_call:
+    inputs:
+      packages:
+        type: string
+        required: true
+      publish:
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: ${{ matrix.pkg }}
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    strategy:
+      fail-fast: false
+      matrix:
+        pkg: ${{ fromJSON(inputs.packages) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.pkg }}
+    steps:
+      - run: pacman -Syu --noconfirm --needed git openssh pacman-contrib
+        working-directory: .
+
+      # PAT so the checksum commit below re-triggers CI (GITHUB_TOKEN pushes don't), letting renovate automerge
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.RENOVATE_TOKEN || github.token }}
+
+      # makepkg refuses to run as root
+      - run: |
+          useradd -m builder
+          chown -R builder .
+          git config --global --add safe.directory '*'
+        working-directory: .
+
+      # Repo deps only; AUR-only deps are skipped and makepkg runs with -d
+      - name: Install dependencies
+        run: |
+          for d in $(. ./PKGBUILD; printf '%s\n' "${depends[@]}" "${makedepends[@]}" "${checkdepends[@]}"); do
+            pacman -S --noconfirm --needed "$d" || echo "::warning::$d not in repos, skipped"
+          done
+
+      # Renovate only bumps pkgver; fill in the rest. Main is never rewritten, so bad sums fail the build there.
+      - name: Refresh checksums and .SRCINFO
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          [[ "$GITHUB_HEAD_REF" == renovate/* ]] && sed -i 's/^pkgrel=.*/pkgrel=1/' PKGBUILD
+          sudo -u builder updpkgsums
+          sudo -u builder makepkg --printsrcinfo > .SRCINFO
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet || { git commit -m "$MATRIX_PKG: update checksums and .SRCINFO"; git pull --rebase -q; git push; }
+        env:
+          MATRIX_PKG: ${{ matrix.pkg }}
+
+      - run: sudo -u builder makepkg -d --noconfirm
+
+      - name: Publish to AUR
+        if: inputs.publish
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          [ -e .aur-ci-disable ] && { echo 'Found .aur-ci-disable, not publishing'; exit 0; }
+          install -dm700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
+          ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur'
+          sudo -u builder makepkg --printsrcinfo > .SRCINFO
+          name=$(. ./PKGBUILD; echo "${pkgbase:-$pkgname}")
+          # A package not on the AUR yet clones as an empty repo; the first push below creates it
+          git clone "ssh://aur@aur.archlinux.org/$name.git" /tmp/aur
+          # Mirror the tracked files of this dir, so deletions propagate too
+          git -C /tmp/aur rm -rq --ignore-unmatch .
+          { git ls-files; echo .SRCINFO; } | sort -u | xargs -d '\n' cp --parents -t /tmp/aur
+          cd /tmp/aur
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Update to $(. ./PKGBUILD; echo "$pkgver-$pkgrel")"
+          git push origin HEAD:master

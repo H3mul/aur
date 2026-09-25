@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track pkgver against the npm package of the same name",
+      "managerFilePatterns": ["/(^|/)PKGBUILD$/"],
+      "matchStrings": ["pkgname=(?<depName>\\S+)\\npkgver=(?<currentValue>\\S+)"],
+      "datasourceTemplate": "npm"
+    }
+  ]
+}

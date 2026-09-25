@@ -1,0 +1,17 @@
+name: Renovate
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      # PAT/App token, not GITHUB_TOKEN: PRs opened with GITHUB_TOKEN don't trigger the PKGBUILD workflow
+      - uses: renovatebot/github-action@v46.3.3
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+        env:
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
