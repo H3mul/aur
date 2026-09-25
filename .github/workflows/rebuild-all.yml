@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish to AUR (dirs with .aur-ci-disable are still skipped)
+        description: Publish to AUR (dirs with .aur-ci-disable are skipped entirely)
         type: boolean
         default: false
 

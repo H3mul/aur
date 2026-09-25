@@ -1,6 +1,6 @@
 name: Build
 
-# Reusable: builds each package dir in `packages`, publishes to AUR when `publish` is set
+# Reusable: builds each package dir in `packages` (minus .aur-ci-disable ones), publishes to AUR when `publish` is set
 on:
   workflow_call:
     inputs:
@@ -12,14 +12,32 @@ on:
         default: false
 
 jobs:
+  # Drop dirs containing .aur-ci-disable: not built, not published
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.f.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: f
+        env:
+          PACKAGES: ${{ inputs.packages }}
+        run: |
+          pkgs=$(jq -r '.[]' <<<"$PACKAGES" | while read -r d; do
+            [ -e "$d/.aur-ci-disable" ] && echo "::notice::$d has .aur-ci-disable, skipped" >&2 || echo "$d"
+          done | jq -Rsc 'split("\n")[:-1]')
+          echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: filter
+    if: needs.filter.outputs.packages != '[]'
     name: ${{ matrix.pkg }}
     runs-on: ubuntu-latest
     container: archlinux:base-devel
     strategy:
       fail-fast: false
       matrix:
-        pkg: ${{ fromJSON(inputs.packages) }}
+        pkg: ${{ fromJSON(needs.filter.outputs.packages) }}
     defaults:
       run:
         working-directory: ${{ matrix.pkg }}
@@ -68,7 +86,6 @@ jobs:
         env:
           AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
         run: |
-          [ -e .aur-ci-disable ] && { echo 'Found .aur-ci-disable, not publishing'; exit 0; }
           install -dm700 ~/.ssh
           printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
