@@ -40,6 +40,7 @@ jobs:
         pkg: ${{ fromJSON(needs.filter.outputs.packages) }}
     defaults:
       run:
+        shell: bash
         working-directory: ${{ matrix.pkg }}
     steps:
       - run: pacman -Syu --noconfirm --needed git openssh pacman-contrib
@@ -89,7 +90,8 @@ jobs:
           install -dm700 ~/.ssh
           printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur && chmod 600 ~/.ssh/aur
           ssh-keyscan aur.archlinux.org >> ~/.ssh/known_hosts
-          export GIT_SSH_COMMAND='ssh -i ~/.ssh/aur'
+          # ssh reads known_hosts from the passwd home (/root), not the container's $HOME (/github/home)
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o UserKnownHostsFile=$HOME/.ssh/known_hosts"
           sudo -u builder makepkg --printsrcinfo > .SRCINFO
           name=$(. ./PKGBUILD; echo "${pkgbase:-$pkgname}")
           # A package not on the AUR yet clones as an empty repo; the first push below creates it
@@ -103,4 +105,4 @@ jobs:
           git add -A
           git diff --cached --quiet && exit 0
           git commit -m "Update to $(. ./PKGBUILD; echo "$pkgver-$pkgrel")"
-          # git push origin HEAD:master
+          git push origin HEAD:master

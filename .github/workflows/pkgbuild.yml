@@ -18,12 +18,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Top-level dirs touched by this push/PR that still hold a PKGBUILD
+      # Top-level dirs touched by this push/PR that still hold a PKGBUILD; all of them if the build script changed
       - id: diff
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
-          pkgs=$(git diff --name-only "$BASE" HEAD | cut -sd/ -f1 | sort -u | while read -r d; do
+          # BASE is gone after a force push (or all zeros on a new branch): treat everything as changed
+          changed=$(git cat-file -e "$BASE^{commit}" 2>/dev/null && git diff --name-only "$BASE" HEAD || echo .github/workflows/build.yml)
+          grep -qx '.github/workflows/build.yml' <<<"$changed" && changed=$(printf '%s\n' */PKGBUILD)
+          pkgs=$(cut -sd/ -f1 <<<"$changed" | sort -u | while read -r d; do
             [ -f "$d/PKGBUILD" ] && echo "$d"
           done | jq -Rsc 'split("\n")[:-1]')
           echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
