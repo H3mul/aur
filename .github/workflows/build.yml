@@ -86,4 +86,4 @@ jobs:
           git add -A
           git diff --cached --quiet && exit 0
           git commit -m "Update to $(. ./PKGBUILD; echo "$pkgver-$pkgrel")"
-          git push origin HEAD:master
+          # git push origin HEAD:master
