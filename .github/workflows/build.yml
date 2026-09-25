@@ -80,7 +80,9 @@ jobs:
         env:
           MATRIX_PKG: ${{ matrix.pkg }}
 
-      - run: sudo -u builder makepkg -d --noconfirm
+      # Validation only: proves the PKGBUILD builds. Publish never uses its output (only tracked files go to AUR).
+      - name: Test build
+        run: sudo -u builder makepkg -d --noconfirm
 
       - name: Publish to AUR
         if: inputs.publish
