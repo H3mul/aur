@@ -1,0 +1,51 @@
+pkgname=cate-git
+pkgver=2.0.5.r1404.g6a00c884
+pkgrel=1
+pkgdesc="Infinite zoomable canvas IDE with editor, terminal and browser panels (h3mul fork of 0-AI-UG/cate)"
+arch=('x86_64')
+url="https://github.com/h3mul/cate"
+license=('MIT')
+depends=('gtk3' 'nss' 'alsa-lib' 'libxss' 'libxtst' 'libnotify' 'xdg-utils' 'at-spi2-core')
+makedepends=('git' 'nodejs' 'npm' 'python' 'make' 'gcc')
+provides=('cate')
+conflicts=('cate')
+options=(!strip !debug)
+source=("$pkgname::git+https://github.com/h3mul/cate.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd "$pkgname"
+    printf '%s.r%s.g%s' "$(node -p 'require("./package.json").version')" \
+        "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+build() {
+    cd "$pkgname"
+    export SENTRY_DSN= ELECTRON_CACHE="$srcdir/electron-cache" npm_config_cache="$srcdir/npm-cache"
+    export npm_config_dangerously_allow_all_scripts=true # npm>=12 skips dep install scripts (node-pty, electron) by default
+    npm ci
+    # downloads the bundled node + ripgrep for the in-app runtime daemon
+    npm run runtime:tarball
+    npm run package -- --linux dir
+}
+
+package() {
+    cd "$pkgname"
+    install -d "$pkgdir/opt/cate" "$pkgdir/usr/bin"
+    cp -a release/linux-unpacked/. "$pkgdir/opt/cate/"
+    chmod 4755 "$pkgdir/opt/cate/chrome-sandbox" 2>/dev/null || true
+    ln -s /opt/cate/cate "$pkgdir/usr/bin/cate"
+    install -Dm644 build/icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/cate.png"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/applications/cate.desktop" <<DESK
+[Desktop Entry]
+Name=Cate
+Comment=Infinite zoomable canvas IDE
+Exec=/usr/bin/cate %U
+Icon=cate
+Type=Application
+Categories=Development;IDE;
+Terminal=false
+StartupWMClass=Cate
+DESK
+}
