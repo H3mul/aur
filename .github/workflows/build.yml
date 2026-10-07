@@ -91,6 +91,14 @@ jobs:
       - name: Test build
         run: sudo -u builder makepkg -d --noconfirm
 
+      # Opt-in: runs the PKGBUILD's '# smoke-test: <cmd>' against the installed package. Repo deps only, so skip pkgs with AUR-only deps.
+      - name: Smoke test
+        run: |
+          cmd=$(sed -n 's/^# smoke-test: //p' PKGBUILD | head -1)
+          [ -n "$cmd" ] || { echo "::notice::no '# smoke-test:' in PKGBUILD, skipped"; exit 0; }
+          pacman -U --noconfirm --nodeps ./*.pkg.tar.*
+          sudo -u builder timeout 30 bash -c "$cmd"
+
       - name: Publish to AUR
         if: inputs.publish
         env:
