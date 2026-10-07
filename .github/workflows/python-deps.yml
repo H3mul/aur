@@ -1,0 +1,24 @@
+name: Python deps drift
+
+# Weekly: -git packages can change upstream deps without any PR here
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.ls.outputs.packages }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: ls
+        run: echo "packages=$(ls -d python-*/PKGBUILD | cut -d/ -f1 | jq -Rsc 'split("\n")[:-1]')" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: list
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      packages: ${{ needs.list.outputs.packages }}

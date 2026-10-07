@@ -66,6 +66,13 @@ jobs:
             pacman -S --noconfirm --needed "$d" || echo "::warning::$d not in repos, skipped"
           done
 
+      # Upstream pyproject.toml deps must appear in depends; override with '# deps-check:' comments (see script)
+      - name: Check Python deps
+        if: startsWith(matrix.pkg, 'python-')
+        run: python3 ../scripts/check-python-deps.py
+        env:
+          MAKEPKG_PREFIX: sudo -u builder
+
       # Renovate only bumps pkgver; fill in the rest. Main is never rewritten, so bad sums fail the build there.
       - name: Refresh checksums and .SRCINFO
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
