@@ -1,6 +1,8 @@
 name: Rebuild all
 
 on:
+  schedule:
+    - cron: '0 4 * * *' # daily; publishing is a no-op when AUR is in sync
   workflow_dispatch:
     inputs:
       publish:
@@ -27,4 +29,4 @@ jobs:
     secrets: inherit
     with:
       packages: ${{ needs.list.outputs.packages }}
-      publish: ${{ inputs.publish }}
+      publish: ${{ inputs.publish || github.event_name == 'schedule' }}
