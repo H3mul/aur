@@ -1,7 +1,7 @@
 # Maintainer: Phillip Dykman <phil.d324@gmail.com>
 pkgname=plasmic-cli
 # renovate: datasource=npm depName=@plasmicapp/cli
-pkgver=0.1.382
+pkgver=0.1.384
 pkgrel=1
 pkgdesc='Plasmic CLI for syncing local code with Plasmic designs (wraps @plasmicapp/cli)'
 arch=('any')
