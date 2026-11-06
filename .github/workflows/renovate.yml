@@ -2,7 +2,8 @@ name: Renovate
 
 on:
   schedule:
-    - cron: '0 0 * * *' # daily
+    - cron: '0 0 * * *' # daily: opens PRs
+    - cron: '10 0 * * *' # second pass: automerges once CI has gone green
   workflow_dispatch:
   push:
     branches: [main]
