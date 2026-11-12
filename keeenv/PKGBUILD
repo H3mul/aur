@@ -1,7 +1,7 @@
 # Maintainer: Phillip Dykman <phil.d324@gmail.com>
 pkgname=keeenv
 # renovate: datasource=github-tags depName=scross01/keeenv
-pkgver=0.6.0
+pkgver=0.7.0
 pkgrel=1
 pkgdesc='Set local environment variables from a KeePass database'
 arch=('any')
