@@ -4,11 +4,12 @@ pkgname=claude-mem-sync
 pkgver=1.2.0
 pkgrel=1
 pkgdesc='Team memory sharing for claude-mem - sync AI memories across developers (wraps @lopadova/claude-mem-sync)'
-arch=('any')
+arch=('x86_64' 'aarch64')
 url='https://github.com/lopadova/claude-mem-sync'
 license=('MIT')
 depends=('nodejs>=18')
-makedepends=('npm')
+# python/make/gcc: node-gyp fallback when no better-sqlite3 prebuilt exists for this Node ABI
+makedepends=('npm' 'python' 'make' 'gcc')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
 sha256sums=('a78b1924183ab78041c79234fdb627718a7bb3a00b754e19a45940ecbdcd89ef')
 
@@ -21,7 +22,7 @@ build() {
 }
 
 package() {
-  npm install -g --omit=optional --no-fund --no-audit --prefix "$pkgdir/usr" \
+  npm install -g --omit=optional --allow-scripts=better-sqlite3 --no-fund --no-audit --prefix "$pkgdir/usr" \
     --cache "$srcdir/npm-cache" "$srcdir/lopadova-claude-mem-sync-"*.tgz
 
   find "$pkgdir/usr" -name package.json -exec sed -i '/"_where"/d' {} +
@@ -30,6 +31,15 @@ package() {
   install -Dm644 "$srcdir/$pkgname-$pkgver/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname"
 
   test -x "$pkgdir/usr/bin/mem-sync"
+
+  # native addon must be built and loadable (--help alone never loads it)
+  local lib="$pkgdir/usr/lib/node_modules/@lopadova/claude-mem-sync"
+  test -f "$lib/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+  (cd "$lib" && node -e "new (require('better-sqlite3'))(':memory:').close()")
+
+  # drop build leftovers
+  rm -rf "$lib/node_modules/better-sqlite3/deps" "$lib/node_modules/better-sqlite3/build/Release/obj"* \
+    "$lib/node_modules/better-sqlite3/build/Release/.deps"
 
   # smoke test: the packaged entrypoint starts and prints help
   "$pkgdir/usr/bin/mem-sync" --help >/dev/null
