@@ -1,4 +1,4 @@
-# Maintainer: Phillip Dykman <phil.d324@gmail.com>
+# Maintainer: H3mul <phil.d324@gmail.com>
 pkgname=claude-mem-sync
 # renovate: datasource=github-releases depName=lopadova/claude-mem-sync
 pkgver=1.2.0
