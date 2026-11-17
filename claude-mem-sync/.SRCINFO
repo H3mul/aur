@@ -7,9 +7,6 @@ pkgbase = claude-mem-sync
 	arch = aarch64
 	license = MIT
 	makedepends = npm
-	makedepends = python
-	makedepends = make
-	makedepends = gcc
 	depends = nodejs>=18
 	source = claude-mem-sync-1.2.0.tar.gz::https://github.com/lopadova/claude-mem-sync/archive/refs/tags/v1.2.0.tar.gz
 	sha256sums = a78b1924183ab78041c79234fdb627718a7bb3a00b754e19a45940ecbdcd89ef

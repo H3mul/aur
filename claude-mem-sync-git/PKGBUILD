@@ -7,8 +7,7 @@ arch=('x86_64' 'aarch64')
 url='https://github.com/H3mul/claude-mem-sync'
 license=('MIT')
 depends=('nodejs>=18')
-# python/make/gcc: node-gyp fallback when no better-sqlite3 prebuilt exists for this Node ABI
-makedepends=('git' 'npm' 'python' 'make' 'gcc')
+makedepends=('git' 'npm')
 provides=('claude-mem-sync')
 conflicts=('claude-mem-sync')
 options=('!debug')
@@ -33,22 +32,20 @@ build() {
 }
 
 package() {
-  npm install -g --omit=optional --allow-scripts=better-sqlite3 --no-fund --no-audit --prefix "$pkgdir/usr" \
-    --cache "$srcdir/npm-cache" "$srcdir/lopadova-claude-mem-sync-"*.tgz
+  npm install -g --no-fund --no-audit --prefix "$pkgdir/usr" \
+    --cache "$srcdir/npm-cache" "$srcdir/lopadova-claude-mem-sync-"*.tgz better-sqlite3@13.2.0
 
   find "$pkgdir/usr" -name package.json -exec sed -i '/"_where"/d' {} +
   chown -R root:root "$pkgdir"
 
   install -Dm644 "$srcdir/claude-mem-sync/LICENSE" -t "$pkgdir/usr/share/licenses/$pkgname"
 
-  # native addon must be built and loadable (--help alone never loads it)
+  # Upstream's optional better-sqlite3@^11 has no prebuilds and can't compile on Node 26 (npm swallows
+  # the failure, leaving an unbuilt copy that shadows ours), so drop it and use the sibling installed
+  # above, which ships prebuilds and resolves via lib/node_modules. Check it loads (--help alone never does).
   local lib="$pkgdir/usr/lib/node_modules/@lopadova/claude-mem-sync"
-  test -f "$lib/node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+  rm -rf "$lib/node_modules/better-sqlite3"
   (cd "$lib" && node -e "new (require('better-sqlite3'))(':memory:').close()")
-
-  # drop build leftovers
-  rm -rf "$lib/node_modules/better-sqlite3/deps" "$lib/node_modules/better-sqlite3/build/Release/obj"* \
-    "$lib/node_modules/better-sqlite3/build/Release/.deps"
 
   test -x "$pkgdir/usr/bin/mem-sync"
   "$pkgdir/usr/bin/mem-sync" --help >/dev/null

@@ -59,6 +59,11 @@ jobs:
           git config --global --add safe.directory '*'
         working-directory: .
 
+      # Node LTS (24) for pkgs with .aur-ci-node24: arch's current node may lack prebuilt native addons. Must precede the dep loop (provides nodejs).
+      - name: Use Node 24
+        if: hashFiles(format('{0}/.aur-ci-node24', matrix.pkg)) != ''
+        run: pacman -S --noconfirm --needed nodejs-lts-krypton
+
       # Repo deps only; AUR-only deps are skipped and makepkg runs with -d
       - name: Install dependencies
         run: |
