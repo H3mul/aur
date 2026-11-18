@@ -2,7 +2,7 @@
 pkgname=claude-mem-sync
 # renovate: datasource=github-releases depName=lopadova/claude-mem-sync
 pkgver=1.2.0
-pkgrel=1
+pkgrel=2
 pkgdesc='Team memory sharing for claude-mem - sync AI memories across developers (wraps @lopadova/claude-mem-sync)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/lopadova/claude-mem-sync'
